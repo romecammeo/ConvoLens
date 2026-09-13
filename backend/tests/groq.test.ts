@@ -22,6 +22,7 @@ const validOutput = JSON.stringify({
     evidence: "I guess maybe we could look at doing it another way.",
     likelyConveyedMeaning: "The speaker tentatively suggested considering an alternative.",
     interpretation: "The hedging makes the proposal sound less definite.",
+    clarificationQuestion: "I interpreted this as a tentative suggestion to consider an alternative. Is that what you intended, or was there a more specific proposal?",
     clarificationComparison: "The intended meaning is more direct than the wording conveyed.",
     refinedFormulation: "I suggest that we consider a different approach."
   }]
@@ -57,6 +58,36 @@ test("Groq adapter accepts an exact evidence substring wrapped in quotation mark
   );
   const analyzer = createGroqAnalyzer({ apiKey: "test-key" }, async () => quoted);
   assert.equal((await analyzer(conversation)).mode, "groq");
+});
+
+test("Groq adapter analyzes one explicitly selected utterance before calibration", async () => {
+  let observedPrompt: Record<string, unknown> | undefined;
+  const analyzer = createGroqAnalyzer({ apiKey: "test-key" }, async request => {
+    observedPrompt = JSON.parse(request.userPrompt) as Record<string, unknown>;
+    return JSON.stringify({
+      analysis: [{
+        segmentId: "segment_2",
+        evidence: "maybe we could look at doing it another way",
+        likelyConveyedMeaning: "The speaker tentatively suggested an alternative.",
+        interpretation: "The wording makes the proposal sound tentative.",
+        clarificationQuestion: "I interpreted this as a tentative suggestion. Is that what you intended, or was there a more specific proposal?",
+        clarificationComparison: null,
+        refinedFormulation: "I suggest that we consider a different approach."
+      }]
+    });
+  });
+
+  const result = await analyzer({
+    userSpeakerId: conversation.userSpeakerId,
+    participants: conversation.participants,
+    transcript: conversation.transcript,
+    analysisTargetSegmentId: "segment_2"
+  });
+
+  assert.deepEqual(observedPrompt?.targetSegmentIds, ["segment_2"]);
+  assert.equal(observedPrompt?.userClarification, null);
+  assert.equal(result.analysis?.length, 1);
+  assert.equal(result.clarification, undefined);
 });
 
 for (const [name, output] of [

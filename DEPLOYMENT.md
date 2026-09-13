@@ -98,9 +98,11 @@ Use the Netlify HTTPS URL and test:
 3. Record a short conversation with two speakers.
 4. Stop and preview the recording.
 5. Select **Transcribe audio**.
-6. Identify your speaker.
-7. Enter your intended meaning and select **Analyze meaning**.
-8. Confirm that the speaker-labelled transcript and Groq result appear.
+6. Choose a speaker using the labelled excerpts. For a podcast demo, choose either speaker as the focus.
+7. Choose a suggested utterance or override it with another turn.
+8. Select **Analyze utterance** and confirm that Groq asks a contextual clarification question.
+9. Answer the question and select **Calibrate with my meaning**.
+10. Export the Markdown report.
 
 If the first request is slow, open the Render `/health` URL and wait for the free service to wake, then retry.
 

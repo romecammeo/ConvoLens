@@ -40,35 +40,59 @@
     <div id="transcriptionStatus" role="status" aria-live="polite"></div>
 
     <div class="control-group">
-      <label for="userSpeaker">Which speaker are you?</label>
+      <label for="userSpeaker">Which speaker should ConvoLens focus on?</label>
       <select id="userSpeaker" disabled>
         <option value="">Transcribe audio first</option>
       </select>
+      <p id="speakerGuidance" class="field-help">
+        Names are not required. After transcription, each option includes an excerpt so you can identify the voice by what they said. For a podcast demo, choose either speaker to analyze.
+      </p>
     </div>
   </section>
 
   <section class="panel" data-step="2">
     <h2>Transcript</h2>
-    <p class="section-copy">Review what was said before asking ConvoLens to interpret it.</p>
+    <p class="section-copy">Review the color-coded speaker turns before choosing who and what to analyze.</p>
     <div id="transcript" class="transcript-list"></div>
   </section>
 
   <section class="panel" data-step="3">
     <h2>Communication Analysis</h2>
-    <p class="section-copy">See the evidence, likely meaning, and a clearer formulation.</p>
-    <div id="analysis" class="result-box">Submit a clarification to analyze the conversation.</div>
+    <p class="section-copy">Choose one utterance first. ConvoLens will interpret only that wording.</p>
+
+    <div class="control-group">
+      <label for="targetSegment">Which utterance should we examine?</label>
+      <select id="targetSegment" disabled>
+        <option value="">Choose a speaker first</option>
+      </select>
+      <p class="field-help">Suggested turns contain hedging, vague wording, or very little explicit detail. You can choose any turn.</p>
+    </div>
+
+    <blockquote id="selectedUtterance" class="selected-utterance">Your selected utterance will appear here.</blockquote>
+
+    <div class="action-row">
+      <button id="analyzeButton" type="button" disabled>Analyze utterance</button>
+      <button id="exportButton" class="secondary-button" type="button" disabled>Export report</button>
+    </div>
+
+    <div id="analysis" class="result-box">Choose a speaker and one of their utterances.</div>
+    <div id="exportStatus" role="status" aria-live="polite"></div>
   </section>
 
   <section class="panel calibration-panel" data-step="4">
     <h2>Calibration</h2>
-    <p class="section-copy">Tell ConvoLens what you meant so it can compare intention with expression.</p>
+    <p class="section-copy">After reading the first interpretation, add what you actually meant so ConvoLens can compare intention with expression.</p>
+
+    <div id="clarificationQuestion" class="clarification-question" aria-live="polite">
+      Analyze an utterance to receive a contextual clarification question.
+    </div>
 
     <div class="calibration-row">
       <div class="control-group">
-        <label for="clarification">What did you actually mean?</label>
-        <input id="clarification" type="text" placeholder="I wanted to suggest a smaller first step…">
+        <label for="clarification">Your answer</label>
+        <textarea id="clarification" rows="4" placeholder="What I meant was…"></textarea>
       </div>
-      <button id="calibrateButton" type="button">Analyze meaning</button>
+      <button id="calibrateButton" type="button" disabled>Calibrate with my meaning</button>
     </div>
 
     <div id="calibrationResult" role="status" aria-live="polite"></div>

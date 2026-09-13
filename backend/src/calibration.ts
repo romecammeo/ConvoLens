@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const id = z.string().trim().min(1).max(100);
 export const conversationSchema = z.object({
+  analysisTargetSegmentId: id.optional(),
   calibration: z.object({ segmentId: id, userMeaning: z.string().trim().min(1).max(10000) }).strict().optional(),
   userSpeakerId: id,
   participants: z.array(id).min(1).max(20),
@@ -15,10 +16,17 @@ export const conversationSchema = z.object({
     issue(["participants"], "Participant IDs must be unique.");
   if (!value.participants.includes(value.userSpeakerId))
     issue(["userSpeakerId"], "Must be a participant.");
+  if (value.analysisTargetSegmentId) {
+    const selected = value.transcript.find(s => s.id === value.analysisTargetSegmentId);
+    if (!selected || selected.speakerId !== value.userSpeakerId)
+      issue(["analysisTargetSegmentId"], "Must identify a segment belonging to userSpeakerId.");
+  }
   if (value.calibration) {
     const selected = value.transcript.find(s => s.id === value.calibration!.segmentId);
     if (!selected || selected.speakerId !== value.userSpeakerId)
       issue(["calibration", "segmentId"], "Must identify a segment belonging to userSpeakerId.");
+    if (value.analysisTargetSegmentId && value.analysisTargetSegmentId !== value.calibration.segmentId)
+      issue(["calibration", "segmentId"], "Must match analysisTargetSegmentId.");
   }
   const seen = new Set<string>();
   value.transcript.forEach((segment, index) => {
@@ -39,6 +47,7 @@ export const groqAnalysisSchema = z.object({
     evidence: z.string().trim().min(1).max(2000),
     likelyConveyedMeaning: z.string().trim().min(1).max(4000),
     interpretation: z.string().trim().min(1).max(4000),
+    clarificationQuestion: z.string().trim().min(1).max(4000),
     clarificationComparison: z.string().trim().min(1).max(4000).nullable(),
     refinedFormulation: z.string().trim().min(1).max(4000)
   }).strict()).min(1).max(500)

@@ -40,6 +40,13 @@ test("calibration HTTP contract", async t => {
     ["clarification missing segment", { ...sample, calibration: { segmentId: "missing", userMeaning: "Meaning" } }],
     ["clarification other speaker", { ...sample, calibration: { segmentId: "segment_1", userMeaning: "Meaning" } }],
     ["clarification blank meaning", { ...sample, calibration: { segmentId: "segment_2", userMeaning: " " } }],
+    ["analysis target missing segment", { ...sample, analysisTargetSegmentId: "missing" }],
+    ["analysis target other speaker", { ...sample, analysisTargetSegmentId: "segment_1" }],
+    ["mismatched analysis and calibration targets", {
+      ...sample,
+      analysisTargetSegmentId: "segment_2",
+      calibration: { segmentId: "segment_1", userMeaning: "Meaning" }
+    }],
     ["missing fields", {}],
     ["unknown user", { ...sample, userSpeakerId: "missing" }],
     ["duplicate participants", { ...sample, participants: ["speaker_1", "speaker_2", "speaker_2"] }],

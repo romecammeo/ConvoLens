@@ -1,6 +1,6 @@
 # ConvoLens
 
-ConvoLens is an AI communication coach. A user can upload or record a conversation, receive a speaker-labelled transcript, identify their speaker, explain what they intended to communicate, and receive evidence-grounded feedback with a clearer formulation.
+ConvoLens is an AI communication coach. A user can upload or record a conversation, receive a speaker-labelled transcript, choose a speaker and a suggested utterance, answer a contextual clarification question, and export evidence-grounded feedback with a clearer formulation.
 
 ## MVP flow
 
@@ -9,9 +9,10 @@ Browser recording or audio upload
     -> Express API
     -> AssemblyAI transcription and diarization
     -> ConvoLens Conversation model
-    -> speaker selection
-    -> Groq communication analysis
-    -> structured browser result
+    -> speaker and utterance selection
+    -> Groq's initial interpretation and contextual question
+    -> optional intention calibration
+    -> structured browser result and Markdown export
 ```
 
 ## Stack
@@ -82,3 +83,4 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the GitHub, Netlify, and Render deploym
 - Audio uploads are limited to 25 MB.
 - Render's free service may need time to wake after inactivity.
 - There is no authentication, database, or saved conversation history.
+- Suggested utterances use a small transparent heuristic; the user can always choose a different turn.
