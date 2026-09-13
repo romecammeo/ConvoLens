@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvoLens</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <header class="hero">
+    <p class="eyebrow">AI communication coach</p>
+    <h1>ConvoLens</h1>
+    <p class="hero-copy">Turn a real conversation into clearer, more intentional communication.</p>
+  </header>
+
+  <main class="workflow">
+  <section class="panel audio-panel" data-step="1">
+    <h2>Audio</h2>
+    <p class="section-copy">Upload or record a conversation to identify each speaker and build the transcript.</p>
+
+    <div class="audio-source-grid">
+      <div class="source-card control-group">
+        <label for="audioFile">Upload audio</label>
+        <input id="audioFile" type="file" accept="audio/*">
+      </div>
+
+      <div class="source-card recorder">
+        <span class="control-label">Record in browser</span>
+        <div class="button-row">
+          <button id="startRecordingButton" class="secondary-button" type="button">Start recording</button>
+          <button id="stopRecordingButton" class="stop-button" type="button" disabled>Stop</button>
+        </div>
+        <div id="recordingStatus" class="recording-status" role="status" aria-live="polite">Ready to record.</div>
+        <audio id="recordingPreview" aria-label="Recording preview" controls hidden></audio>
+      </div>
+    </div>
+
+    <button id="transcribeButton" type="button">Transcribe audio</button>
+
+    <div id="transcriptionStatus" role="status" aria-live="polite"></div>
+
+    <div class="control-group">
+      <label for="userSpeaker">Which speaker are you?</label>
+      <select id="userSpeaker" disabled>
+        <option value="">Transcribe audio first</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="panel" data-step="2">
+    <h2>Transcript</h2>
+    <p class="section-copy">Review what was said before asking ConvoLens to interpret it.</p>
+    <div id="transcript" class="transcript-list"></div>
+  </section>
+
+  <section class="panel" data-step="3">
+    <h2>Communication Analysis</h2>
+    <p class="section-copy">See the evidence, likely meaning, and a clearer formulation.</p>
+    <div id="analysis" class="result-box">Submit a clarification to analyze the conversation.</div>
+  </section>
+
+  <section class="panel calibration-panel" data-step="4">
+    <h2>Calibration</h2>
+    <p class="section-copy">Tell ConvoLens what you meant so it can compare intention with expression.</p>
+
+    <div class="calibration-row">
+      <div class="control-group">
+        <label for="clarification">What did you actually mean?</label>
+        <input id="clarification" type="text" placeholder="I wanted to suggest a smaller first step…">
+      </div>
+      <button id="calibrateButton" type="button">Analyze meaning</button>
+    </div>
+
+    <div id="calibrationResult" role="status" aria-live="polite"></div>
+  </section>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

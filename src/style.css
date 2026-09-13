@@ -1,0 +1,352 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f6f7fb;
+  background: #080b14;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --surface: rgba(20, 25, 43, 0.82);
+  --surface-strong: #171d31;
+  --border: rgba(255, 255, 255, 0.1);
+  --muted: #a9b1c7;
+  --accent: #7c6cff;
+  --accent-bright: #a99fff;
+  --signal: #43ddbd;
+  --danger: #ff8e9e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  padding: 64px 24px 80px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(124, 108, 255, 0.2), transparent 34rem),
+    radial-gradient(circle at 92% 18%, rgba(67, 221, 189, 0.1), transparent 28rem),
+    #080b14;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.hero,
+.workflow {
+  width: min(1080px, 100%);
+  margin-inline: auto;
+}
+
+.hero {
+  margin-bottom: 36px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--signal);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  background: linear-gradient(110deg, #ffffff 12%, #c9c3ff 58%, #76ead2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-copy {
+  max-width: 610px;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.6;
+}
+
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.panel {
+  position: relative;
+  min-width: 0;
+  padding: 28px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(27, 33, 55, 0.92), var(--surface));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.panel::before {
+  content: "0" attr(data-step);
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  margin-bottom: 22px;
+  border: 1px solid rgba(124, 108, 255, 0.55);
+  border-radius: 10px;
+  color: var(--accent-bright);
+  background: rgba(124, 108, 255, 0.12);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.025em;
+}
+
+.section-copy {
+  min-height: 48px;
+  margin: 10px 0 24px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.control-group {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.audio-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.source-card {
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(8, 11, 20, 0.38);
+}
+
+.recorder {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.button-row button {
+  flex: 1 1 120px;
+}
+
+.secondary-button {
+  border: 1px solid rgba(169, 159, 255, 0.45);
+  color: #f6f7fb;
+  background: rgba(124, 108, 255, 0.13);
+}
+
+.stop-button {
+  border: 1px solid rgba(255, 142, 158, 0.45);
+  color: #ffd9df;
+  background: rgba(255, 142, 158, 0.12);
+}
+
+.recording-status {
+  min-height: 40px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+audio {
+  width: 100%;
+  height: 40px;
+}
+
+label,
+.control-label {
+  color: #dfe3ef;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+  color: #f6f7fb;
+  background: rgba(8, 11, 20, 0.72);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+input[type="text"],
+select {
+  padding: 0 14px;
+}
+
+input[type="file"] {
+  padding: 7px;
+  color: var(--muted);
+}
+
+input[type="file"]::file-selector-button {
+  height: 30px;
+  margin-right: 12px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #ffffff;
+  background: #303751;
+  cursor: pointer;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.18);
+}
+
+select:disabled {
+  color: #707991;
+  cursor: not-allowed;
+}
+
+button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  color: #0a0c14;
+  background: linear-gradient(115deg, var(--accent-bright), var(--signal));
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#transcriptionStatus,
+#calibrationResult {
+  min-height: 22px;
+  margin: 16px 0;
+  color: var(--signal);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.transcript-list,
+.result-box {
+  border-radius: 14px;
+  background: rgba(8, 11, 20, 0.5);
+}
+
+.transcript-list {
+  padding: 6px 16px;
+}
+
+.transcript-list p {
+  margin: 0;
+  padding: 14px 0;
+  color: #e8eaf2;
+  line-height: 1.55;
+}
+
+.transcript-list p + p {
+  border-top: 1px solid var(--border);
+}
+
+.result-box {
+  min-height: 100px;
+  padding: 18px;
+  color: #d7dbea;
+  line-height: 1.55;
+}
+
+.result-box p {
+  margin: 0 0 12px;
+}
+
+.result-box p:last-child {
+  margin-bottom: 0;
+}
+
+.calibration-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.calibration-row .control-group {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  body {
+    padding: 40px 16px 56px;
+  }
+
+  .workflow {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 22px;
+  }
+
+  .section-copy {
+    min-height: 0;
+  }
+
+  .calibration-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .audio-source-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+.netlify/
+
+# Local implementation records; the current checkpoint is tracked separately.
+BACKEND_COMMAND_LOG.md
+BACKEND_SETUP.md

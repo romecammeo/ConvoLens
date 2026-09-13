@@ -1,0 +1,37 @@
+{
+  "name": "convolens",
+  "version": "1.0.0",
+  "description": "A learning project exploring how conversation transcripts can support reflection on communication.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck:frontend": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types vite/client src/main.ts",
+    "dev:backend": "node --env-file-if-exists=backend/.env --import tsx --watch backend/src/server.ts",
+    "typecheck:backend": "tsc --noEmit -p backend/tsconfig.json",
+    "build:backend": "tsc -p backend/tsconfig.json",
+    "start:backend": "node --env-file-if-exists=backend/.env backend/dist/server.js",
+    "test:backend": "tsx --test backend/tests/*.test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^22.20.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "assemblyai": "^4.41.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.6.0",
+    "multer": "^2.3.0",
+    "zod": "^4.6.2"
+  }
+}
