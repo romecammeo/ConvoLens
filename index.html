@@ -16,12 +16,13 @@
   <main class="workflow">
     <section class="panel audio-panel" data-step="1">
       <h2>Add a conversation</h2>
-      <p class="section-copy">Upload or record a conversation. ConvoLens will transcribe it and separate the speakers.</p>
+      <p class="section-copy">Upload audio, add a speaker-labelled Markdown transcript, or record a conversation.</p>
 
       <div class="audio-source-grid">
         <div class="source-card control-group">
-          <label for="audioFile">Upload audio</label>
-          <input id="audioFile" type="file" accept="audio/*">
+          <label for="audioFile">Upload audio or Markdown</label>
+          <input id="audioFile" type="file" accept="audio/*,.md,text/markdown">
+          <p class="field-help">Markdown format: <code>Speaker A: What was said.</code></p>
         </div>
 
         <div class="source-card recorder">
@@ -35,7 +36,7 @@
         </div>
       </div>
 
-      <button id="transcribeButton" type="button">Transcribe audio</button>
+      <button id="transcribeButton" type="button">Create transcript</button>
       <div id="transcriptionStatus" role="status" aria-live="polite"></div>
     </section>
 
@@ -46,7 +47,7 @@
       <div class="control-group">
         <label for="userSpeaker">Focus speaker</label>
         <select id="userSpeaker" disabled>
-          <option value="">Transcribe audio first</option>
+          <option value="">Add a conversation first</option>
         </select>
         <p class="field-help">For a podcast or practice recording, choose either speaker.</p>
       </div>

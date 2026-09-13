@@ -3,17 +3,19 @@ import cors from "cors";
 import multer, { MulterError } from "multer";
 import { AnalysisError, analyzeStub, conversationSchema, type Analyzer } from "./calibration.js";
 import { findReviewCandidatesStub, type ReviewCandidateFinder } from "./reviewCandidates.js";
-import { TranscriptionError, type Transcriber } from "./transcription.js";
+import { TranscriptionError, adaptMarkdownTranscript, type Transcriber } from "./transcription.js";
+
+const isMarkdownFile = (filename: string) => filename.toLocaleLowerCase().endsWith(".md");
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, callback) => {
-    if (file.mimetype.startsWith("audio/")) {
+    if (file.mimetype.startsWith("audio/") || isMarkdownFile(file.originalname)) {
       callback(null, true);
       return;
     }
-    callback(new TranscriptionError("INVALID_AUDIO", 400, "Upload a supported audio file."));
+    callback(new TranscriptionError("INVALID_AUDIO", 400, "Upload a supported audio file or a .md transcript."));
   }
 });
 
@@ -55,15 +57,19 @@ export function createApp(
     res.json(await findReviewCandidates(parsed.data));
   });
   app.post("/api/transcriptions", upload.single("audio"), async (req, res) => {
+    if (!req.file) {
+      throw new TranscriptionError("INVALID_AUDIO", 400, "Choose an audio file or a .md transcript.");
+    }
+    if (isMarkdownFile(req.file.originalname)) {
+      res.json(adaptMarkdownTranscript(req.file.buffer));
+      return;
+    }
     if (!transcribe) {
       throw new TranscriptionError(
         "TRANSCRIPTION_NOT_CONFIGURED",
         503,
         "AssemblyAI transcription is not configured."
       );
-    }
-    if (!req.file) {
-      throw new TranscriptionError("INVALID_AUDIO", 400, "Choose an audio file to upload.");
     }
     res.json(await transcribe({
       bytes: req.file.buffer,

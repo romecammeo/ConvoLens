@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 const assemblyAiTranscriptSchema = z.object({
   id: z.string().min(1),
@@ -31,12 +32,70 @@ export type Transcriber = (input: TranscriptionInput) => Promise<TranscriptionRe
 
 export class TranscriptionError extends Error {
   constructor(
-    public readonly code: "INVALID_AUDIO" | "AUDIO_TOO_LARGE" | "TRANSCRIPTION_NOT_CONFIGURED" | "TRANSCRIPTION_FAILED" | "INVALID_TRANSCRIPTION",
+    public readonly code: "INVALID_AUDIO" | "INVALID_MARKDOWN" | "AUDIO_TOO_LARGE" | "TRANSCRIPTION_NOT_CONFIGURED" | "TRANSCRIPTION_FAILED" | "INVALID_TRANSCRIPTION",
     public readonly status: 400 | 413 | 502 | 503,
     message: string
   ) {
     super(message);
   }
+}
+
+export function adaptMarkdownTranscript(bytes: Buffer): TranscriptionResult {
+  const markdown = bytes.toString("utf8").replace(/^\uFEFF/u, "");
+  if (!markdown.trim() || markdown.includes("\u0000")) {
+    throw new TranscriptionError("INVALID_MARKDOWN", 400, "The Markdown transcript is empty or unreadable.");
+  }
+
+  const allLines = markdown.split(/\r?\n/u);
+  const transcriptHeadingIndex = allLines.findIndex(line =>
+    /^#{1,6}\s+(?:full\s+)?transcript\s*$/iu.test(line.trim())
+  );
+  const transcriptSection = transcriptHeadingIndex >= 0
+    ? allLines.slice(transcriptHeadingIndex + 1)
+    : allLines;
+  const nextHeadingIndex = transcriptSection.findIndex(line => /^#{1,6}\s+/u.test(line.trim()));
+  const lines = nextHeadingIndex >= 0 ? transcriptSection.slice(0, nextHeadingIndex) : transcriptSection;
+
+  const speakerIds = new Map<string, { id: string; label: string }>();
+  const transcript: TranscriptionResult["transcript"] = [];
+  const labelledLine = /^(?:>\s*)?(?:[-+]\s+)?(?:\*\*|__)?([^:\n]{1,100}?):(?:\*\*|__)?\s+(.+)$/u;
+
+  for (const line of lines) {
+    const match = line.trim().match(labelledLine);
+    if (!match) continue;
+    const label = match[1]?.trim();
+    const text = match[2]?.trim();
+    if (!label || !text || /^#{1,6}\s/u.test(label)) continue;
+
+    const key = label.toLocaleLowerCase();
+    let speaker = speakerIds.get(key);
+    if (!speaker) {
+      speaker = { id: `speaker_${speakerIds.size + 1}`, label };
+      speakerIds.set(key, speaker);
+    }
+    transcript.push({
+      id: `segment_${String(transcript.length + 1).padStart(4, "0")}`,
+      speakerId: speaker.id,
+      text
+    });
+  }
+
+  if (transcript.length === 0) {
+    throw new TranscriptionError(
+      "INVALID_MARKDOWN",
+      400,
+      "Use speaker-labelled lines such as ‘Speaker A: Hello.’ in the Markdown transcript."
+    );
+  }
+
+  const speakers = [...speakerIds.values()];
+  return {
+    transcriptId: `markdown_${createHash("sha256").update(bytes).digest("hex").slice(0, 12)}`,
+    audioDurationSeconds: null,
+    speakers,
+    participants: speakers.map(speaker => speaker.id),
+    transcript
+  };
 }
 
 export function adaptAssemblyAiTranscript(value: unknown): TranscriptionResult {

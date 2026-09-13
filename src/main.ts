@@ -294,7 +294,7 @@ if (
     userSpeakerSelect.replaceChildren();
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = "Transcribe audio first";
+    option.textContent = "Add a conversation first";
     userSpeakerSelect.appendChild(option);
     userSpeakerSelect.disabled = true;
     clearReview("Choose a focus speaker first.");
@@ -550,7 +550,9 @@ if (
     clearRecording();
     resetTranscription();
     transcriptionStatus.textContent = "";
-    recordingStatus.textContent = `${file.name} selected for transcription.`;
+    recordingStatus.textContent = file.name.toLocaleLowerCase().endsWith(".md")
+      ? `${file.name} selected. ConvoLens will read its speaker-labelled turns.`
+      : `${file.name} selected for transcription.`;
   });
 
   window.addEventListener("beforeunload", () => {
@@ -561,7 +563,7 @@ if (
   transcribeButton.addEventListener("click", async () => {
     const file = recordedFile ?? audioFileInput.files?.[0];
     if (!file) {
-      transcriptionStatus.textContent = "Upload or record audio first.";
+      transcriptionStatus.textContent = "Upload audio or Markdown, or record a conversation first.";
       return;
     }
 
@@ -571,7 +573,10 @@ if (
     startRecordingButton.disabled = true;
     audioFileInput.disabled = true;
     userSpeakerSelect.disabled = true;
-    transcriptionStatus.textContent = "Transcribing and separating speakers…";
+    const isMarkdown = file.name.toLocaleLowerCase().endsWith(".md");
+    transcriptionStatus.textContent = isMarkdown
+      ? "Reading the speaker-labelled Markdown transcript…"
+      : "Transcribing and separating speakers…";
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/transcriptions`, {

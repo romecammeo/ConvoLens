@@ -95,9 +95,9 @@ Use the Netlify HTTPS URL and test:
 
 1. Open the site.
 2. Select **Start recording** and allow microphone access.
-3. Record a short conversation with two speakers.
-4. Stop and preview the recording.
-5. Select **Transcribe audio**.
+3. Record a short conversation with two speakers, upload audio, or upload a speaker-labelled `.md` transcript.
+4. Stop and preview the recording if using the microphone.
+5. Select **Create transcript**.
 6. Choose a speaker using the labelled excerpts. For a podcast demo, choose either speaker as the focus.
 7. Confirm that ConvoLens finds a short list of parts worth reviewing.
 8. Choose a suggested part, or open **Choose a different turn** to override it.

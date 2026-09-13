@@ -5,9 +5,9 @@ ConvoLens is an AI communication coach. A user can upload or record a conversati
 ## MVP flow
 
 ```text
-Browser recording or audio upload
+Browser recording, audio upload, or Markdown transcript
     -> Express API
-    -> AssemblyAI transcription and diarization
+    -> AssemblyAI diarization for audio / local parser for Markdown
     -> ConvoLens Conversation model
     -> focus-speaker selection
     -> Groq identifies 1-4 parts worth reviewing
@@ -61,6 +61,22 @@ npm run dev -- --host localhost --port 5173 --strictPort
 
 Open `http://localhost:5173`.
 
+## Markdown transcript format
+
+Use one speaker-labelled turn per line. Plain and Markdown-list forms are accepted:
+
+```markdown
+Speaker A: What exactly are you proposing?
+Speaker B: I think we should revisit the earlier approach.
+```
+
+```markdown
+- **Alice:** What exactly are you proposing?
+- **Bob:** I think we should revisit the earlier approach.
+```
+
+If the file contains a `## Transcript` or `## Full transcript` heading, only the labelled lines in that section are imported. Markdown transcripts are parsed locally by the backend and do not use AssemblyAI.
+
 ## Checks
 
 ```bash
@@ -75,8 +91,9 @@ npm run build:backend
 
 - `GROQ_API_KEY` and `ASSEMBLYAI_API_KEY` exist only on the backend.
 - `VITE_API_BASE_URL` is a public frontend setting containing the deployed backend URL.
-- Local audio stays in browser memory until **Transcribe audio** is selected.
+- A local recording stays in browser memory until **Create transcript** is selected.
 - Uploaded audio is kept in backend memory and sent to AssemblyAI without local persistence.
+- Uploaded Markdown is parsed in backend memory and is not sent to AssemblyAI.
 - `POST /api/review-candidates` reduces the transcript-search burden by returning validated focus-speaker segment IDs.
 - `POST /api/calibration` keeps the richer analysis contract while the browser presents only evidence, conveyed meaning, clarification, refinement, and a learning explanation.
 
@@ -85,7 +102,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the GitHub, Netlify, and Render deploym
 ## MVP limits
 
 - Diarization currently expects two speakers.
-- Audio uploads are limited to 25 MB.
+- Audio and Markdown uploads are limited to 25 MB.
 - Render's free service may need time to wake after inactivity.
 - There is no authentication, database, or saved conversation history.
 - Candidate discovery currently selects individual speaker turns. A later version can allow a multi-turn conversational span without changing the transcript model.

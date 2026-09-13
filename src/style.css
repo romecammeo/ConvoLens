@@ -392,6 +392,13 @@ button:disabled {
   line-height: 1.45;
 }
 
+.field-help code {
+  border-radius: 5px;
+  padding: 2px 5px;
+  color: #e8eaf2;
+  background: rgba(255, 255, 255, 0.07);
+}
+
 .selected-moment {
   min-height: 72px;
   margin: 18px 0 16px;
