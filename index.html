@@ -10,93 +10,99 @@
   <header class="hero">
     <p class="eyebrow">AI communication coach</p>
     <h1>ConvoLens</h1>
-    <p class="hero-copy">Turn a real conversation into clearer, more intentional communication.</p>
+    <p class="hero-copy">Find the places where your words may not have carried your full meaning—and learn how to say them more clearly.</p>
   </header>
 
   <main class="workflow">
-  <section class="panel audio-panel" data-step="1">
-    <h2>Audio</h2>
-    <p class="section-copy">Upload or record a conversation to identify each speaker and build the transcript.</p>
+    <section class="panel audio-panel" data-step="1">
+      <h2>Add a conversation</h2>
+      <p class="section-copy">Upload or record a conversation. ConvoLens will transcribe it and separate the speakers.</p>
 
-    <div class="audio-source-grid">
-      <div class="source-card control-group">
-        <label for="audioFile">Upload audio</label>
-        <input id="audioFile" type="file" accept="audio/*">
-      </div>
-
-      <div class="source-card recorder">
-        <span class="control-label">Record in browser</span>
-        <div class="button-row">
-          <button id="startRecordingButton" class="secondary-button" type="button">Start recording</button>
-          <button id="stopRecordingButton" class="stop-button" type="button" disabled>Stop</button>
+      <div class="audio-source-grid">
+        <div class="source-card control-group">
+          <label for="audioFile">Upload audio</label>
+          <input id="audioFile" type="file" accept="audio/*">
         </div>
-        <div id="recordingStatus" class="recording-status" role="status" aria-live="polite">Ready to record.</div>
-        <audio id="recordingPreview" aria-label="Recording preview" controls hidden></audio>
+
+        <div class="source-card recorder">
+          <span class="control-label">Record in browser</span>
+          <div class="button-row">
+            <button id="startRecordingButton" class="secondary-button" type="button">Start recording</button>
+            <button id="stopRecordingButton" class="stop-button" type="button" disabled>Stop</button>
+          </div>
+          <div id="recordingStatus" class="recording-status" role="status" aria-live="polite">Ready to record.</div>
+          <audio id="recordingPreview" aria-label="Recording preview" controls hidden></audio>
+        </div>
       </div>
-    </div>
 
-    <button id="transcribeButton" type="button">Transcribe audio</button>
+      <button id="transcribeButton" type="button">Transcribe audio</button>
+      <div id="transcriptionStatus" role="status" aria-live="polite"></div>
+    </section>
 
-    <div id="transcriptionStatus" role="status" aria-live="polite"></div>
+    <section class="panel transcript-panel" data-step="2">
+      <h2>Pick whose speech to review</h2>
+      <p class="section-copy">Names are not required. Use the excerpts and transcript to recognize each speaker.</p>
 
-    <div class="control-group">
-      <label for="userSpeaker">Which speaker should ConvoLens focus on?</label>
-      <select id="userSpeaker" disabled>
-        <option value="">Transcribe audio first</option>
-      </select>
-      <p id="speakerGuidance" class="field-help">
-        Names are not required. After transcription, each option includes an excerpt so you can identify the voice by what they said. For a podcast demo, choose either speaker to analyze.
-      </p>
-    </div>
-  </section>
-
-  <section class="panel" data-step="2">
-    <h2>Transcript</h2>
-    <p class="section-copy">Review the color-coded speaker turns before choosing who and what to analyze.</p>
-    <div id="transcript" class="transcript-list"></div>
-  </section>
-
-  <section class="panel" data-step="3">
-    <h2>Communication Analysis</h2>
-    <p class="section-copy">Choose one utterance first. ConvoLens will interpret only that wording.</p>
-
-    <div class="control-group">
-      <label for="targetSegment">Which utterance should we examine?</label>
-      <select id="targetSegment" disabled>
-        <option value="">Choose a speaker first</option>
-      </select>
-      <p class="field-help">Suggested turns contain hedging, vague wording, or very little explicit detail. You can choose any turn.</p>
-    </div>
-
-    <blockquote id="selectedUtterance" class="selected-utterance">Your selected utterance will appear here.</blockquote>
-
-    <div class="action-row">
-      <button id="analyzeButton" type="button" disabled>Analyze utterance</button>
-      <button id="exportButton" class="secondary-button" type="button" disabled>Export report</button>
-    </div>
-
-    <div id="analysis" class="result-box">Choose a speaker and one of their utterances.</div>
-    <div id="exportStatus" role="status" aria-live="polite"></div>
-  </section>
-
-  <section class="panel calibration-panel" data-step="4">
-    <h2>Calibration</h2>
-    <p class="section-copy">After reading the first interpretation, add what you actually meant so ConvoLens can compare intention with expression.</p>
-
-    <div id="clarificationQuestion" class="clarification-question" aria-live="polite">
-      Analyze an utterance to receive a contextual clarification question.
-    </div>
-
-    <div class="calibration-row">
       <div class="control-group">
-        <label for="clarification">Your answer</label>
-        <textarea id="clarification" rows="4" placeholder="What I meant was…"></textarea>
+        <label for="userSpeaker">Focus speaker</label>
+        <select id="userSpeaker" disabled>
+          <option value="">Transcribe audio first</option>
+        </select>
+        <p class="field-help">For a podcast or practice recording, choose either speaker.</p>
       </div>
-      <button id="calibrateButton" type="button" disabled>Calibrate with my meaning</button>
-    </div>
 
-    <div id="calibrationResult" role="status" aria-live="polite"></div>
-  </section>
+      <div id="transcript" class="transcript-list"></div>
+    </section>
+
+    <section class="panel review-panel" data-step="3">
+      <h2>Pick a part worth reviewing</h2>
+      <p class="section-copy">ConvoLens looks for wording that may be ambiguous, tentative, or dependent on unstated context.</p>
+
+      <div id="reviewStatus" class="review-status" role="status" aria-live="polite">Choose a focus speaker first.</div>
+      <div id="reviewCandidates" class="review-candidates"></div>
+
+      <details id="turnOverride" class="turn-override" hidden>
+        <summary>Choose a different turn</summary>
+        <div class="control-group">
+          <label for="targetSegment">All turns from this speaker</label>
+          <select id="targetSegment" disabled>
+            <option value="">Choose a focus speaker first</option>
+          </select>
+        </div>
+      </details>
+
+      <blockquote id="selectedMoment" class="selected-moment">Choose one of the suggested parts above.</blockquote>
+      <button id="analyzeButton" type="button" disabled>See what ConvoLens understood</button>
+    </section>
+
+    <section class="panel reflection-panel" data-step="4">
+      <h2>Clarify and refine</h2>
+      <p class="section-copy">Compare what your words conveyed with what you meant at that point in the conversation.</p>
+
+      <div id="analysis" class="meaning-card" aria-live="polite">
+        Choose a speaker and a part of the conversation to begin.
+      </div>
+
+      <div id="clarificationArea" class="clarification-area" hidden>
+        <p class="result-label">Is that what you meant?</p>
+        <div id="clarificationQuestion" class="clarification-question" aria-live="polite"></div>
+        <label for="clarification">What did you actually mean?</label>
+        <textarea id="clarification" rows="4" placeholder="No — what I meant was…"></textarea>
+        <button id="calibrateButton" type="button" disabled>Refine what I said</button>
+        <div id="calibrationResult" role="status" aria-live="polite"></div>
+      </div>
+
+      <div id="refinementResult" class="refinement-result" hidden>
+        <p class="result-label">A clearer way to say it</p>
+        <blockquote id="refinedFormulation" class="refined-formulation"></blockquote>
+        <details class="why-clearer">
+          <summary>Why this is clearer</summary>
+          <p id="whyClearer"></p>
+        </details>
+        <button id="exportButton" class="secondary-button" type="button" disabled>Export Markdown report</button>
+        <div id="exportStatus" role="status" aria-live="polite"></div>
+      </div>
+    </section>
   </main>
 
   <script type="module" src="/src/main.ts"></script>

@@ -1,7 +1,8 @@
 import { createApp } from "./app.js";
 import { analyzeStub, type Analyzer } from "./calibration.js";
-import { createGroqAnalyzer } from "./groq.js";
+import { createGroqAnalyzer, createGroqReviewCandidateFinder } from "./groq.js";
 import { createAssemblyAiTranscriber } from "./assemblyai.js";
+import { findReviewCandidatesStub, type ReviewCandidateFinder } from "./reviewCandidates.js";
 
 const port = Number(process.env.PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -25,13 +26,20 @@ const analyzer: Analyzer = useGroq
       model: process.env.GROQ_MODEL ?? "openai/gpt-oss-20b"
     })
   : analyzeStub;
+const reviewCandidateFinder: ReviewCandidateFinder = useGroq
+  ? createGroqReviewCandidateFinder({
+      apiKey: apiKey!,
+      model: process.env.GROQ_MODEL ?? "openai/gpt-oss-20b"
+    })
+  : findReviewCandidatesStub;
 
 const assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY?.trim();
 const transcriber = assemblyAiApiKey
   ? createAssemblyAiTranscriber({ apiKey: assemblyAiApiKey })
   : undefined;
 
-const server = createApp(analyzer, process.env.FRONTEND_ORIGIN, transcriber).listen(port, host, () => {
+const server = createApp(analyzer, process.env.FRONTEND_ORIGIN, transcriber, reviewCandidateFinder).listen(port, host, () => {
+  console.log(`ConvoLens ${useGroq ? "Groq" : "deterministic stub"}: http://${host}:${port}/api/review-candidates`);
   console.log(`ConvoLens ${useGroq ? "Groq" : "deterministic stub"}: http://${host}:${port}/api/calibration`);
   console.log(`ConvoLens ${transcriber ? "AssemblyAI" : "transcription unavailable"}: http://${host}:${port}/api/transcriptions`);
 });

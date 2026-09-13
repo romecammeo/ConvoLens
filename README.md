@@ -1,6 +1,6 @@
 # ConvoLens
 
-ConvoLens is an AI communication coach. A user can upload or record a conversation, receive a speaker-labelled transcript, choose a speaker and a suggested utterance, answer a contextual clarification question, and export evidence-grounded feedback with a clearer formulation.
+ConvoLens is an AI communication coach. A user can upload or record a conversation, receive a speaker-labelled transcript, choose a focus speaker, review communication gaps suggested by ConvoLens, clarify their actual intention, and export a context-aware clearer formulation.
 
 ## MVP flow
 
@@ -9,10 +9,13 @@ Browser recording or audio upload
     -> Express API
     -> AssemblyAI transcription and diarization
     -> ConvoLens Conversation model
-    -> speaker and utterance selection
-    -> Groq's initial interpretation and contextual question
-    -> optional intention calibration
-    -> structured browser result and Markdown export
+    -> focus-speaker selection
+    -> Groq identifies 1-4 parts worth reviewing
+    -> user selects a suggested part or another turn
+    -> Groq explains what the wording likely conveyed
+    -> user answers a contextual clarification question
+    -> Groq uses the turn + surrounding context + intended meaning
+    -> clearer formulation, learning explanation, and Markdown export
 ```
 
 ## Stack
@@ -74,6 +77,8 @@ npm run build:backend
 - `VITE_API_BASE_URL` is a public frontend setting containing the deployed backend URL.
 - Local audio stays in browser memory until **Transcribe audio** is selected.
 - Uploaded audio is kept in backend memory and sent to AssemblyAI without local persistence.
+- `POST /api/review-candidates` reduces the transcript-search burden by returning validated focus-speaker segment IDs.
+- `POST /api/calibration` keeps the richer analysis contract while the browser presents only evidence, conveyed meaning, clarification, refinement, and a learning explanation.
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for the GitHub, Netlify, and Render deployment sequence. See [CHECKPOINT_MODEL_TO_CSS.md](./CHECKPOINT_MODEL_TO_CSS.md) for the implementation checkpoint.
 
@@ -83,4 +88,5 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the GitHub, Netlify, and Render deploym
 - Audio uploads are limited to 25 MB.
 - Render's free service may need time to wake after inactivity.
 - There is no authentication, database, or saved conversation history.
-- Suggested utterances use a small transparent heuristic; the user can always choose a different turn.
+- Candidate discovery currently selects individual speaker turns. A later version can allow a multi-turn conversational span without changing the transcript model.
+- Candidate discovery has a deterministic local fallback when Groq is not configured; the user can always choose a different turn.

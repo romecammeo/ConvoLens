@@ -95,6 +95,27 @@ test("health endpoint reports that the server is running", async t => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { status: "ok" });
 });
+test("review-candidates HTTP contract returns focus-speaker suggestions", async t => {
+  const server = createApp().listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
+  const address = server.address();
+  assert(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}/api/review-candidates`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sample)
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    mode: "deterministic-stub",
+    candidates: [{
+      segmentId: "segment_2",
+      reason: "Tentative wording may leave the speaker's position unclear."
+    }]
+  });
+});
 test("analyzer failure returns a safe error", async t => {
   const server = createApp(async () => { throw new Error("secret provider error"); }).listen(0, "127.0.0.1");
   await once(server, "listening");

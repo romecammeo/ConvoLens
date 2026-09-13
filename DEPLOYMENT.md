@@ -99,10 +99,11 @@ Use the Netlify HTTPS URL and test:
 4. Stop and preview the recording.
 5. Select **Transcribe audio**.
 6. Choose a speaker using the labelled excerpts. For a podcast demo, choose either speaker as the focus.
-7. Choose a suggested utterance or override it with another turn.
-8. Select **Analyze utterance** and confirm that Groq asks a contextual clarification question.
-9. Answer the question and select **Calibrate with my meaning**.
-10. Export the Markdown report.
+7. Confirm that ConvoLens finds a short list of parts worth reviewing.
+8. Choose a suggested part, or open **Choose a different turn** to override it.
+9. Select **See what ConvoLens understood** and confirm that Groq asks a contextual clarification question.
+10. State what the speaker actually meant and select **Refine what I said**.
+11. Confirm that the clearer formulation fits that point in the conversation, then export the Markdown report.
 
 If the first request is slow, open the Render `/health` URL and wait for the free service to wake, then retry.
 

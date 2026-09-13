@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AnalysisError } from "../src/calibration.js";
-import { createGroqAnalyzer } from "../src/groq.js";
+import { createGroqAnalyzer, createGroqReviewCandidateFinder } from "../src/groq.js";
 
 const conversation = {
   userSpeakerId: "speaker_2",
@@ -42,11 +42,15 @@ test("Groq adapter builds grounded input and returns validated structured analys
   assert.deepEqual(result.clarification, { source: "user-provided", ...conversation.calibration });
   assert.equal(observedRequest?.model, "openai/gpt-oss-20b");
   assert.match(observedRequest?.systemPrompt ?? "", /never claim knowledge of private mental states/i);
+  assert.match(observedRequest?.systemPrompt ?? "", /at that point in this conversation/i);
+  assert.match(observedRequest?.systemPrompt ?? "", /do not merely paraphrase/i);
   assert.deepEqual(JSON.parse(observedRequest?.userPrompt ?? "{}"), {
     userSpeakerId: "speaker_2",
     targetSegmentIds: ["segment_2"],
+    selectedUtterances: [conversation.transcript[1]],
+    surroundingContext: conversation.transcript,
     transcript: conversation.transcript,
-    userClarification: conversation.calibration
+    userIntendedMeaning: conversation.calibration.userMeaning
   });
   assert.doesNotMatch(observedRequest?.userPrompt ?? "", /test-key/);
 });
@@ -85,10 +89,49 @@ test("Groq adapter analyzes one explicitly selected utterance before calibration
   });
 
   assert.deepEqual(observedPrompt?.targetSegmentIds, ["segment_2"]);
-  assert.equal(observedPrompt?.userClarification, null);
+  assert.equal(observedPrompt?.userIntendedMeaning, null);
   assert.equal(result.analysis?.length, 1);
   assert.equal(result.clarification, undefined);
 });
+
+test("Groq review finder selects validated focus-speaker turns", async () => {
+  let observedRequest: { schemaName: string; systemPrompt: string; userPrompt: string } | undefined;
+  const findCandidates = createGroqReviewCandidateFinder({ apiKey: "test-key" }, async request => {
+    observedRequest = request;
+    return JSON.stringify({
+      candidates: [{
+        segmentId: "segment_2",
+        reason: "Tentative wording may leave the proposed alternative unclear."
+      }]
+    });
+  });
+
+  const result = await findCandidates(conversation);
+  assert.equal(result.mode, "groq");
+  assert.equal(result.candidates[0]?.segmentId, "segment_2");
+  assert.equal(observedRequest?.schemaName, "convolens_review_candidates");
+  assert.match(observedRequest?.systemPrompt ?? "", /between 2 and 4/i);
+  assert.deepEqual(JSON.parse(observedRequest?.userPrompt ?? "{}"), {
+    userSpeakerId: conversation.userSpeakerId,
+    transcript: conversation.transcript
+  });
+});
+
+for (const [name, output] of [
+  ["another speaker's turn", JSON.stringify({ candidates: [{ segmentId: "segment_1", reason: "Reason" }] })],
+  ["duplicate turns", JSON.stringify({ candidates: [
+    { segmentId: "segment_2", reason: "Reason one" },
+    { segmentId: "segment_2", reason: "Reason two" }
+  ] })]
+]) {
+  test(`Groq review finder rejects ${name}`, async () => {
+    const findCandidates = createGroqReviewCandidateFinder({ apiKey: "test-key" }, async () => output);
+    await assert.rejects(
+      () => findCandidates(conversation),
+      (error: unknown) => error instanceof AnalysisError && error.code === "INVALID_PROVIDER_OUTPUT"
+    );
+  });
+}
 
 for (const [name, output] of [
   ["invalid JSON", "not JSON"],

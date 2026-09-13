@@ -54,6 +54,14 @@ type CalibrationResponse = {
   analysis?: AnalysisItem[];
 };
 
+type ReviewCandidatesResponse = {
+  mode: "deterministic-stub" | "groq";
+  candidates: {
+    segmentId: string;
+    reason: string;
+  }[];
+};
+
 type ErrorResponse = {
   error?: {
     message?: string;
@@ -81,6 +89,16 @@ const demoTranscription: TranscriptionResponse = {
       id: "segment_2",
       speakerId: "speaker_2",
       text: "I guess maybe we could look at doing it another way."
+    },
+    {
+      id: "segment_3",
+      speakerId: "speaker_1",
+      text: "Do you have a particular alternative in mind?"
+    },
+    {
+      id: "segment_4",
+      speakerId: "speaker_2",
+      text: "Something closer to the approach we talked about before."
     }
   ]
 };
@@ -94,14 +112,21 @@ const recordingPreview = document.getElementById("recordingPreview") as HTMLAudi
 const transcribeButton = document.getElementById("transcribeButton") as HTMLButtonElement;
 const transcriptionStatus = document.getElementById("transcriptionStatus") as HTMLDivElement;
 const userSpeakerSelect = document.getElementById("userSpeaker") as HTMLSelectElement;
+const reviewStatus = document.getElementById("reviewStatus") as HTMLDivElement;
+const reviewCandidates = document.getElementById("reviewCandidates") as HTMLDivElement;
+const turnOverride = document.getElementById("turnOverride") as HTMLDetailsElement;
 const targetSegmentSelect = document.getElementById("targetSegment") as HTMLSelectElement;
-const selectedUtterance = document.getElementById("selectedUtterance") as HTMLElement;
+const selectedMoment = document.getElementById("selectedMoment") as HTMLElement;
 const analyzeButton = document.getElementById("analyzeButton") as HTMLButtonElement;
+const analysisContainer = document.getElementById("analysis") as HTMLDivElement;
+const clarificationArea = document.getElementById("clarificationArea") as HTMLDivElement;
 const clarificationQuestion = document.getElementById("clarificationQuestion") as HTMLDivElement;
 const clarificationInput = document.getElementById("clarification") as HTMLTextAreaElement;
 const calibrateButton = document.getElementById("calibrateButton") as HTMLButtonElement;
-const analysisContainer = document.getElementById("analysis") as HTMLDivElement;
 const calibrationResult = document.getElementById("calibrationResult") as HTMLDivElement;
+const refinementResult = document.getElementById("refinementResult") as HTMLDivElement;
+const refinedFormulation = document.getElementById("refinedFormulation") as HTMLElement;
+const whyClearer = document.getElementById("whyClearer") as HTMLParagraphElement;
 const exportButton = document.getElementById("exportButton") as HTMLButtonElement;
 const exportStatus = document.getElementById("exportStatus") as HTMLDivElement;
 
@@ -115,14 +140,21 @@ if (
   transcribeButton instanceof HTMLButtonElement &&
   transcriptionStatus &&
   userSpeakerSelect instanceof HTMLSelectElement &&
+  reviewStatus &&
+  reviewCandidates &&
+  turnOverride instanceof HTMLDetailsElement &&
   targetSegmentSelect instanceof HTMLSelectElement &&
-  selectedUtterance &&
+  selectedMoment &&
   analyzeButton instanceof HTMLButtonElement &&
+  analysisContainer &&
+  clarificationArea &&
   clarificationQuestion &&
   clarificationInput instanceof HTMLTextAreaElement &&
   calibrateButton instanceof HTMLButtonElement &&
-  analysisContainer &&
   calibrationResult &&
+  refinementResult &&
+  refinedFormulation &&
+  whyClearer &&
   exportButton instanceof HTMLButtonElement &&
   exportStatus
 ) {
@@ -133,15 +165,20 @@ if (
   let selectedTargetId = "";
   let lastResult: CalibrationResponse | null = null;
   let lastClarificationQuestion = "";
+  let candidateRequestVersion = 0;
   let mediaRecorder: MediaRecorder | null = null;
   let mediaStream: MediaStream | null = null;
   let recordedFile: File | null = null;
   let recordingUrl: string | null = null;
 
-  const excerpt = (text: string, maxLength = 92) =>
+  const excerpt = (text: string, maxLength = 110) =>
     text.length <= maxLength ? text : `${text.slice(0, maxLength - 1).trimEnd()}…`;
 
   const getSpeakerLabel = (speakerId: string) => speakerLabels.get(speakerId) ?? speakerId;
+
+  function selectedSegment() {
+    return conversation?.transcript.find(segment => segment.id === selectedTargetId);
+  }
 
   function renderTranscript(transcript: TranscriptSegment[], focusSpeakerId = "") {
     transcriptContainer.replaceChildren();
@@ -160,6 +197,7 @@ if (
       const speakerIndex = Math.max(0, speakerIds.indexOf(segment.speakerId));
       item.className = `transcript-segment speaker-tone-${speakerIndex % 4}`;
       if (segment.speakerId === focusSpeakerId) item.classList.add("is-focus");
+      if (segment.id === selectedTargetId) item.classList.add("is-selected");
 
       const label = document.createElement("strong");
       label.className = "speaker-label";
@@ -175,7 +213,7 @@ if (
       if (suggestedTargetIds.has(segment.id)) {
         const badge = document.createElement("span");
         badge.className = "review-badge";
-        badge.textContent = "Suggested";
+        badge.textContent = "Worth reviewing";
         labelRow.appendChild(badge);
         item.classList.add("is-suggested");
       }
@@ -185,26 +223,39 @@ if (
     }
   }
 
-  function clearAnalysis(message: string) {
-    selectedTargetId = "";
+  function resetReflection(message: string) {
     lastResult = null;
     lastClarificationQuestion = "";
+    clarificationInput.value = "";
+    clarificationQuestion.textContent = "";
+    calibrationResult.textContent = "";
+    refinedFormulation.textContent = "";
+    whyClearer.textContent = "";
+    exportStatus.textContent = "";
+    clarificationArea.hidden = true;
+    refinementResult.hidden = true;
+    calibrateButton.disabled = true;
+    exportButton.disabled = true;
+    analysisContainer.textContent = message;
+  }
+
+  function clearReview(message: string) {
+    candidateRequestVersion += 1;
+    selectedTargetId = "";
     suggestedTargetIds = new Set();
+    reviewStatus.textContent = message;
+    reviewCandidates.replaceChildren();
+    turnOverride.hidden = true;
+    turnOverride.open = false;
     targetSegmentSelect.replaceChildren();
     const option = document.createElement("option");
     option.value = "";
     option.textContent = message;
     targetSegmentSelect.appendChild(option);
     targetSegmentSelect.disabled = true;
-    selectedUtterance.textContent = "Your selected utterance will appear here.";
-    analysisContainer.textContent = "Choose a speaker and one of their utterances.";
-    clarificationQuestion.textContent = "Analyze an utterance to receive a contextual clarification question.";
-    calibrationResult.textContent = "";
-    exportStatus.textContent = "";
-    clarificationInput.value = "";
+    selectedMoment.textContent = "Choose one of the suggested parts above.";
     analyzeButton.disabled = true;
-    calibrateButton.disabled = true;
-    exportButton.disabled = true;
+    resetReflection("Choose a speaker and a part of the conversation to begin.");
   }
 
   function populateSpeakerOptions(result: TranscriptionResponse) {
@@ -219,7 +270,7 @@ if (
       const option = document.createElement("option");
       option.value = speaker.id;
       option.textContent = firstTurn
-        ? `${speaker.label} — “${excerpt(firstTurn.text)}”`
+        ? `${speaker.label} — “${excerpt(firstTurn.text, 76)}”`
         : speaker.label;
       userSpeakerSelect.appendChild(option);
     }
@@ -230,7 +281,7 @@ if (
     transcription = result;
     conversation = null;
     speakerLabels = new Map(result.speakers.map(speaker => [speaker.id, speaker.label]));
-    clearAnalysis("Choose a speaker first");
+    clearReview("Choose a focus speaker first.");
     renderTranscript(result.transcript);
     populateSpeakerOptions(result);
     transcriptionStatus.textContent = message;
@@ -246,69 +297,89 @@ if (
     option.textContent = "Transcribe audio first";
     userSpeakerSelect.appendChild(option);
     userSpeakerSelect.disabled = true;
-    clearAnalysis("Choose a speaker first");
+    clearReview("Choose a focus speaker first.");
     renderTranscript([]);
   }
 
-  function populateTargetOptions(speakerId: string) {
+  function populateAllTurnOptions(speakerId: string) {
     if (!transcription) return;
     const turns = transcription.transcript.filter(segment => segment.speakerId === speakerId);
-    const rankedTurns = turns
-      .map(segment => ({ segment, score: scoreReviewValue(segment.text) }))
-      .sort((a, b) => b.score - a.score || b.segment.text.length - a.segment.text.length);
-    const suggestions = rankedTurns.filter(item => item.score > 0).slice(0, 3);
-    suggestedTargetIds = new Set(
-      (suggestions.length > 0 ? suggestions : rankedTurns.slice(0, 1))
-        .map(item => item.segment.id)
-    );
     targetSegmentSelect.replaceChildren();
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = "Choose an utterance";
+    placeholder.textContent = "Choose any turn";
     targetSegmentSelect.appendChild(placeholder);
     turns.forEach((segment, index) => {
       const option = document.createElement("option");
       option.value = segment.id;
-      const prefix = suggestedTargetIds.has(segment.id) ? "Suggested · " : "";
-      option.textContent = `${prefix}Turn ${index + 1} — “${excerpt(segment.text)}”`;
+      option.textContent = `Turn ${index + 1} — “${excerpt(segment.text, 80)}”`;
       targetSegmentSelect.appendChild(option);
     });
     targetSegmentSelect.disabled = turns.length === 0;
+    turnOverride.hidden = turns.length === 0;
   }
 
-  function resetResultForTarget() {
-    lastResult = null;
-    lastClarificationQuestion = "";
-    clarificationInput.value = "";
-    calibrationResult.textContent = "";
-    exportStatus.textContent = "";
-    calibrateButton.disabled = true;
-    exportButton.disabled = true;
-    analyzeButton.disabled = !selectedSegment();
-    analysisContainer.textContent = selectedTargetId
-      ? "Select Analyze utterance to see what this wording conveyed."
-      : "Choose one utterance to analyze.";
-    clarificationQuestion.textContent = "Analyze an utterance to receive a contextual clarification question.";
+  function selectTarget(segmentId: string) {
+    if (!conversation?.transcript.some(segment =>
+      segment.id === segmentId && segment.speakerId === conversation?.userSpeakerId
+    )) return;
+
+    selectedTargetId = segmentId;
+    targetSegmentSelect.value = segmentId;
+    const segment = selectedSegment();
+    selectedMoment.textContent = segment
+      ? `${getSpeakerLabel(segment.speakerId)}: “${segment.text}”`
+      : "Choose a part of the conversation.";
+    analyzeButton.disabled = !segment;
+    for (const button of reviewCandidates.querySelectorAll<HTMLButtonElement>("button[data-segment-id]")) {
+      const selected = button.dataset.segmentId === segmentId;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    }
+    renderTranscript(conversation.transcript, conversation.userSpeakerId);
+    resetReflection("Select “See what ConvoLens understood” to review this part.");
   }
 
-  function scoreReviewValue(text: string) {
-    const normalized = text.toLocaleLowerCase();
-    const wordCount = text.trim().split(/\s+/u).length;
-    const highValuePhrases = [
-      "i guess", "maybe", "sort of", "kind of", "perhaps", "probably",
-      "not sure", "could", "might", "something", "stuff", "whatever"
-    ];
-    const phraseScore = highValuePhrases.reduce(
-      (score, phrase) => score + (normalized.includes(phrase) ? 3 : 0),
-      0
+  function renderReviewCandidates(result: ReviewCandidatesResponse) {
+    if (!conversation) return;
+    const segmentById = new Map(conversation.transcript.map(segment => [segment.id, segment]));
+    const candidates = result.candidates.filter(candidate =>
+      segmentById.get(candidate.segmentId)?.speakerId === conversation?.userSpeakerId
     );
-    const shortAmbiguousScore = wordCount <= 4 ? 1 : 0;
-    const vagueReferenceScore = /\b(this|that|it|things)\b/u.test(normalized) ? 1 : 0;
-    return phraseScore + shortAmbiguousScore + vagueReferenceScore;
-  }
+    suggestedTargetIds = new Set(candidates.map(candidate => candidate.segmentId));
+    reviewCandidates.replaceChildren();
 
-  function selectedSegment() {
-    return conversation?.transcript.find(segment => segment.id === selectedTargetId);
+    if (candidates.length === 0) {
+      reviewStatus.textContent = "No specific parts were suggested. You can still choose any turn below.";
+      turnOverride.open = true;
+      renderTranscript(conversation.transcript, conversation.userSpeakerId);
+      return;
+    }
+
+    reviewStatus.textContent = `ConvoLens found ${candidates.length} ${candidates.length === 1 ? "part" : "parts"} of the conversation that may be worth reviewing.`;
+    candidates.forEach((candidate, index) => {
+      const segment = segmentById.get(candidate.segmentId);
+      if (!segment) return;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "review-candidate";
+      button.dataset.segmentId = candidate.segmentId;
+      button.setAttribute("aria-pressed", "false");
+
+      const number = document.createElement("span");
+      number.className = "candidate-number";
+      number.textContent = `Part ${index + 1}`;
+      const quote = document.createElement("span");
+      quote.className = "candidate-quote";
+      quote.textContent = `“${excerpt(segment.text)}”`;
+      const reason = document.createElement("span");
+      reason.className = "candidate-reason";
+      reason.textContent = candidate.reason;
+      button.append(number, quote, reason);
+      reviewCandidates.appendChild(button);
+    });
+    renderTranscript(conversation.transcript, conversation.userSpeakerId);
   }
 
   function makeRequest(userMeaning?: string): AnalysisRequest | null {
@@ -322,45 +393,45 @@ if (
     };
   }
 
-  async function requestAnalysis(request: AnalysisRequest) {
-    const response = await fetch(`${apiBaseUrl}/api/calibration`, {
+  async function postJson<T>(path: string, body: unknown, fallback: string) {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request)
+      body: JSON.stringify(body)
     });
-    const result = await response.json() as CalibrationResponse & ErrorResponse;
-    if (!response.ok) throw new Error(result.error?.message ?? "Analysis failed.");
+    const result = await response.json() as T & ErrorResponse;
+    if (!response.ok) throw new Error(result.error?.message ?? fallback);
     return result;
   }
 
-  function renderAnalysis(result: CalibrationResponse) {
-    const modelAnalysis = result.analysis?.find(item => item.segmentId === selectedTargetId);
+  function currentAnalysis(result: CalibrationResponse) {
+    return result.analysis?.find(item => item.segmentId === selectedTargetId);
+  }
+
+  function renderMeaning(result: CalibrationResponse) {
+    const segment = selectedSegment();
+    const modelAnalysis = currentAnalysis(result);
     analysisContainer.replaceChildren();
 
-    if (!modelAnalysis) {
-      const phrases = result.observations
-        .flatMap(observation => observation.tentativePhrases)
-        .join(", ");
-      analysisContainer.textContent = phrases
-        ? `Tentative phrasing found: ${phrases}.`
-        : "No tentative phrasing was found.";
+    if (!segment) {
+      analysisContainer.textContent = "Choose a part of the conversation first.";
       return;
     }
 
-    for (const [label, value] of [
-      ["Evidence", modelAnalysis.evidence],
-      ["Likely conveyed meaning", modelAnalysis.likelyConveyedMeaning],
-      ["Interpretation", modelAnalysis.interpretation],
-      ["Clarification comparison", modelAnalysis.clarificationComparison],
-      ["Refined formulation", modelAnalysis.refinedFormulation]
-    ]) {
-      if (!value) continue;
-      const paragraph = document.createElement("p");
-      const heading = document.createElement("strong");
-      heading.textContent = `${label}: `;
-      paragraph.append(heading, value);
-      analysisContainer.appendChild(paragraph);
-    }
+    const saidLabel = document.createElement("p");
+    saidLabel.className = "result-label";
+    saidLabel.textContent = `${getSpeakerLabel(segment.speakerId)} said`;
+    const said = document.createElement("blockquote");
+    said.className = "meaning-quote";
+    said.textContent = `“${segment.text}”`;
+    const understoodLabel = document.createElement("p");
+    understoodLabel.className = "result-label";
+    understoodLabel.textContent = "ConvoLens understood";
+    const understood = document.createElement("p");
+    understood.className = "understood-text";
+    understood.textContent = modelAnalysis?.likelyConveyedMeaning
+      ?? "Only the deterministic wording check is available. Connect Groq for a contextual interpretation.";
+    analysisContainer.append(saidLabel, said, understoodLabel, understood);
   }
 
   function errorMessage(error: unknown, fallback: string) {
@@ -512,7 +583,7 @@ if (
 
       loadTranscription(
         result,
-        `Transcription ready: ${result.transcript.length} turns. Review the excerpts, then choose a speaker.`
+        `Transcription ready: ${result.transcript.length} turns. Read the transcript, then choose a focus speaker.`
       );
     } catch (error) {
       transcriptionStatus.textContent = errorMessage(error, "Transcription failed.");
@@ -523,10 +594,10 @@ if (
     }
   });
 
-  userSpeakerSelect.addEventListener("change", () => {
+  userSpeakerSelect.addEventListener("change", async () => {
     if (!transcription || !userSpeakerSelect.value) {
       conversation = null;
-      clearAnalysis("Choose a speaker first");
+      clearReview("Choose a focus speaker first.");
       renderTranscript(transcription?.transcript ?? []);
       return;
     }
@@ -536,51 +607,80 @@ if (
       participants: transcription.participants,
       transcript: transcription.transcript
     };
+    const requestConversation = conversation;
+    const requestVersion = ++candidateRequestVersion;
     selectedTargetId = "";
-    populateTargetOptions(userSpeakerSelect.value);
-    resetResultForTarget();
-    renderTranscript(transcription.transcript, userSpeakerSelect.value);
-    const label = getSpeakerLabel(userSpeakerSelect.value);
-    transcriptionStatus.textContent = `${label} selected for analysis. Choose one of the highlighted turns below.`;
+    suggestedTargetIds = new Set();
+    populateAllTurnOptions(conversation.userSpeakerId);
+    reviewCandidates.replaceChildren();
+    reviewStatus.textContent = "Finding parts of the conversation worth reviewing…";
+    selectedMoment.textContent = "Choose one of the suggested parts above.";
+    resetReflection("ConvoLens is looking for possible communication gaps.");
+    renderTranscript(transcription.transcript, conversation.userSpeakerId);
+    transcriptionStatus.textContent = `${getSpeakerLabel(conversation.userSpeakerId)} selected as the focus speaker.`;
+
+    try {
+      const result = await postJson<ReviewCandidatesResponse>(
+        "/api/review-candidates",
+        requestConversation,
+        "Could not find parts worth reviewing."
+      );
+      if (requestVersion !== candidateRequestVersion) return;
+      renderReviewCandidates(result);
+      resetReflection("Choose one suggested part, then see what ConvoLens understood.");
+    } catch (error) {
+      if (requestVersion !== candidateRequestVersion) return;
+      reviewStatus.textContent = `${errorMessage(error, "Suggestions failed.")} You can still choose any turn below.`;
+      turnOverride.open = true;
+      resetReflection("Choose a turn manually to continue.");
+    }
+  });
+
+  reviewCandidates.addEventListener("click", event => {
+    const button = (event.target as Element).closest<HTMLButtonElement>("button[data-segment-id]");
+    if (button?.dataset.segmentId) selectTarget(button.dataset.segmentId);
   });
 
   targetSegmentSelect.addEventListener("change", () => {
-    selectedTargetId = targetSegmentSelect.value;
-    const segment = selectedSegment();
-    selectedUtterance.textContent = segment
-      ? `${getSpeakerLabel(segment.speakerId)}: “${segment.text}”`
-      : "Your selected utterance will appear here.";
-    resetResultForTarget();
+    if (targetSegmentSelect.value) selectTarget(targetSegmentSelect.value);
   });
 
   analyzeButton.addEventListener("click", async () => {
     const request = makeRequest();
     if (!request) {
-      analysisContainer.textContent = "Choose a speaker and utterance first.";
+      analysisContainer.textContent = "Choose a speaker and a part of the conversation first.";
       return;
     }
 
     analyzeButton.disabled = true;
     calibrateButton.disabled = true;
     exportButton.disabled = true;
-    analysisContainer.textContent = "Analyzing the selected wording…";
-    calibrationResult.textContent = "";
+    clarificationArea.hidden = true;
+    refinementResult.hidden = true;
+    analysisContainer.textContent = "Reading this part in its conversational context…";
 
     try {
-      const result = await requestAnalysis(request);
+      const result = await postJson<CalibrationResponse>("/api/calibration", request, "Analysis failed.");
       lastResult = result;
-      renderAnalysis(result);
-      lastClarificationQuestion = result.analysis?.find(item => item.segmentId === selectedTargetId)
-        ?.clarificationQuestion ?? "Does this interpretation match what you intended?";
+      renderMeaning(result);
+      const modelAnalysis = currentAnalysis(result);
+      lastClarificationQuestion = modelAnalysis?.clarificationQuestion
+        ?? "Does this wording capture what you meant, or was there a more specific idea behind it?";
       clarificationQuestion.textContent = lastClarificationQuestion;
-      calibrationResult.textContent = "Answer the question above if the interpretation needs clarification.";
-      calibrateButton.disabled = false;
-      exportButton.disabled = false;
+      clarificationArea.hidden = false;
+      calibrationResult.textContent = result.mode === "groq"
+        ? "Add your intended meaning so ConvoLens can compare it with what your words conveyed."
+        : "Groq is not connected, so only the wording check is available.";
+      calibrateButton.disabled = clarificationInput.value.trim().length === 0;
     } catch (error) {
       analysisContainer.textContent = errorMessage(error, "Analysis failed.");
     } finally {
       analyzeButton.disabled = !selectedSegment();
     }
+  });
+
+  clarificationInput.addEventListener("input", () => {
+    calibrateButton.disabled = !lastResult || clarificationInput.value.trim().length === 0;
   });
 
   calibrateButton.addEventListener("click", async () => {
@@ -592,63 +692,74 @@ if (
     }
     const request = makeRequest(intendedMeaning);
     if (!request) {
-      calibrationResult.textContent = "Choose and analyze an utterance first.";
+      calibrationResult.textContent = "Choose and analyze a part of the conversation first.";
       return;
     }
 
     analyzeButton.disabled = true;
     calibrateButton.disabled = true;
     exportButton.disabled = true;
-    calibrationResult.textContent = "Comparing the wording with the intended meaning…";
+    refinementResult.hidden = true;
+    calibrationResult.textContent = "Using the selected turn, its surrounding context, and your intended meaning…";
 
     try {
-      const result = await requestAnalysis(request);
+      const result = await postJson<CalibrationResponse>("/api/calibration", request, "Refinement failed.");
       lastResult = result;
-      renderAnalysis(result);
-      calibrationResult.textContent = `Intended meaning used for calibration: ${intendedMeaning}`;
+      renderMeaning(result);
+      const modelAnalysis = currentAnalysis(result);
+      if (!modelAnalysis) {
+        calibrationResult.textContent = "Context-aware refinement requires Groq. The backend is currently using its deterministic fallback.";
+        return;
+      }
+      refinedFormulation.textContent = `“${modelAnalysis.refinedFormulation}”`;
+      whyClearer.textContent = modelAnalysis.clarificationComparison ?? modelAnalysis.interpretation;
+      refinementResult.hidden = false;
       exportButton.disabled = false;
+      calibrationResult.textContent = "Refinement ready.";
     } catch (error) {
-      calibrationResult.textContent = errorMessage(error, "Calibration failed.");
+      calibrationResult.textContent = errorMessage(error, "Refinement failed.");
     } finally {
       analyzeButton.disabled = !selectedSegment();
-      calibrateButton.disabled = false;
+      calibrateButton.disabled = clarificationInput.value.trim().length === 0;
     }
   });
 
   exportButton.addEventListener("click", () => {
     const segment = selectedSegment();
-    if (!lastResult || !conversation || !segment) return;
-    const analysis = lastResult.analysis?.find(item => item.segmentId === segment.id);
+    const modelAnalysis = lastResult ? currentAnalysis(lastResult) : undefined;
+    if (!lastResult?.clarification || !conversation || !segment || !modelAnalysis) return;
+
     const lines = [
-      "# ConvoLens communication report",
+      "# ConvoLens reflection",
       "",
       `Generated: ${new Date().toLocaleString()}`,
       `Focus speaker: ${getSpeakerLabel(conversation.userSpeakerId)}`,
       "",
-      "## Selected utterance",
+      "## What was said",
       "",
       segment.text,
       "",
-      "## Analysis",
+      "## What ConvoLens understood",
       "",
-      ...(analysis ? [
-        `- **Evidence:** ${analysis.evidence}`,
-        `- **Likely conveyed meaning:** ${analysis.likelyConveyedMeaning}`,
-        `- **Interpretation:** ${analysis.interpretation}`,
-        `- **Clarification question:** ${lastClarificationQuestion || analysis.clarificationQuestion}`,
-        ...(analysis.clarificationComparison
-          ? [`- **Clarification comparison:** ${analysis.clarificationComparison}`]
-          : []),
-        `- **Refined formulation:** ${analysis.refinedFormulation}`
-      ] : ["No structured model analysis was returned."]),
-      ...(lastResult.clarification ? [
-        "",
-        "## Intended meaning",
-        "",
-        lastResult.clarification.userMeaning
-      ] : []),
+      modelAnalysis.likelyConveyedMeaning,
       "",
-      "## Transcript",
+      "## Clarification question",
+      "",
+      lastClarificationQuestion || modelAnalysis.clarificationQuestion,
+      "",
+      "## What I meant",
+      "",
+      lastResult.clarification.userMeaning,
+      "",
+      "## A clearer way to say it",
+      "",
+      modelAnalysis.refinedFormulation,
+      "",
+      "## Why this is clearer",
+      "",
+      modelAnalysis.clarificationComparison ?? modelAnalysis.interpretation,
+      "",
+      "## Full transcript",
       "",
       ...conversation.transcript.map(turn => `- **${getSpeakerLabel(turn.speakerId)}:** ${turn.text}`),
       "",
@@ -658,12 +769,12 @@ if (
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `convolens-report-${new Date().toISOString().slice(0, 10)}.md`;
+    link.download = `convolens-reflection-${new Date().toISOString().slice(0, 10)}.md`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
-    exportStatus.textContent = "Report exported as a Markdown file.";
+    exportStatus.textContent = "Reflection exported as a Markdown file.";
   });
 
   loadTranscription(

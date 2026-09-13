@@ -2,6 +2,7 @@ import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import multer, { MulterError } from "multer";
 import { AnalysisError, analyzeStub, conversationSchema, type Analyzer } from "./calibration.js";
+import { findReviewCandidatesStub, type ReviewCandidateFinder } from "./reviewCandidates.js";
 import { TranscriptionError, type Transcriber } from "./transcription.js";
 
 const upload = multer({
@@ -19,7 +20,8 @@ const upload = multer({
 export function createApp(
   analyze: Analyzer = analyzeStub,
   origin = process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
-  transcribe?: Transcriber
+  transcribe?: Transcriber,
+  findReviewCandidates: ReviewCandidateFinder = findReviewCandidatesStub
 ) {
   const app = express();
   app.disable("x-powered-by");
@@ -40,6 +42,18 @@ export function createApp(
     }
     res.json(await analyze(parsed.data));
   });
+  app.post("/api/review-candidates", async (req, res) => {
+    if (!req.is("application/json")) {
+      res.status(415).json({ error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Use Content-Type: application/json." } });
+      return;
+    }
+    const parsed = conversationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: { code: "INVALID_INPUT", message: "Invalid conversation.", issues: parsed.error.issues.map(({ path, message }) => ({ path: path.join("."), message })) } });
+      return;
+    }
+    res.json(await findReviewCandidates(parsed.data));
+  });
   app.post("/api/transcriptions", upload.single("audio"), async (req, res) => {
     if (!transcribe) {
       throw new TranscriptionError(
@@ -59,7 +73,7 @@ export function createApp(
   });
   app.use((_req, res) => {
     res.status(404).json({
-      error: { code: "NOT_FOUND", message: "Use POST /api/calibration or POST /api/transcriptions." }
+      error: { code: "NOT_FOUND", message: "Use POST /api/review-candidates, POST /api/calibration, or POST /api/transcriptions." }
     });
   });
   const handleError: ErrorRequestHandler = (error, _req, res, _next) => {
